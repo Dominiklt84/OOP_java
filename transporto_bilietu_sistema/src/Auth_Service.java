@@ -29,7 +29,7 @@ public class Auth_Service {
         return currentUser != null;
     }
 
-    public String nowUsername(){
+    public String nowLogged(){
         return currentUser != null ? currentUser.getNickname() : "Nothing";
     }
 }
