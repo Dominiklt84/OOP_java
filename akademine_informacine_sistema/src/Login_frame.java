@@ -45,9 +45,9 @@ public class Login_frame extends JFrame {
     private void openRoleWindow(User u) {
         dispose();
         switch (u.getRole()) {
-            case "ADMIN" -> new AdminFrame(u).setVisible(true);
-            case "PROFESSOR" -> new ProfessorFrame(u).setVisible(true);
-            case "STUDENT" -> new StudentFrame(u).setVisible(true);
+            case "ADMIN" -> new Admin_frame(u).setVisible(true);
+            case "PROFESSOR" -> new Professor_frame(u).setVisible(true);
+            case "STUDENT" -> new Student_frame(u).setVisible(true);
         }
     }
 }

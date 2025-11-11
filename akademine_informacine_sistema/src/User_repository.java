@@ -19,18 +19,20 @@ public class User_repository {
             ResultSet rs = ps.executeQuery();
 
             if (rs.next()) {
-                int id = rs.getInt("user_id");
+                int user_id = rs.getInt("user_id");
                 String fn = rs.getString("first_name");
                 String ln = rs.getString("last_name");
                 String role = rs.getString("role");
 
                 switch (role.toUpperCase()) {
                     case "ADMIN":
-                        return Optional.of(new Admin(id, login, password, fn, ln));
+                        return Optional.of(new Admin(user_id, login, password, fn, ln));
                     case "PROFESSOR":
-                        return Optional.of(new Professor(id, login, password, fn, ln));
+                        return Optional.of(new Professor(user_id, login, password, fn, ln));
                     case "STUDENT":
-                        return Optional.of(new Student(id, login, password, fn, ln));
+                        int student_id = rs.getInt("student_id");
+                        Integer group_id = (Integer) rs.getObject("student_group_id"); // gali būti null
+                        return Optional.of(new Student(user_id, login, password, fn, ln, student_id, group_id));
                     default:
                         return Optional.empty();
                 }
