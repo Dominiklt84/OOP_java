@@ -28,10 +28,11 @@ public class User_repository {
                     case "ADMIN":
                         return Optional.of(new Admin(user_id, login, password, fn, ln));
                     case "PROFESSOR":
-                        return Optional.of(new Professor(user_id, login, password, fn, ln));
+                        int professor_id = rs.getInt("professor_id");
+                        return Optional.of(new Professor(user_id, login, password, fn, ln, professor_id));
                     case "STUDENT":
                         int student_id = rs.getInt("student_id");
-                        Integer group_id = (Integer) rs.getObject("student_group_id"); // gali būti null
+                        Integer group_id = (Integer) rs.getObject("student_group_id");
                         return Optional.of(new Student(user_id, login, password, fn, ln, student_id, group_id));
                     default:
                         return Optional.empty();

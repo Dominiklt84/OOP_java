@@ -1,5 +1,10 @@
 public class Professor extends User {
-    public Professor(int id, String login, String password, String firstName, String lastName) {
-        super(id, login, password, firstName, lastName, "PROFESSOR");
+    private int professor_id;
+
+    public Professor(int user_id, String login, String password,
+                     String firstName, String lastName, int professor_id) {
+        super(user_id, login, password, firstName, lastName, "PROFESSOR");
+        this.professor_id = professor_id;
     }
+    public int getProfessorId() { return professor_id; }
 }

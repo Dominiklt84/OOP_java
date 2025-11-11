@@ -8,5 +8,10 @@ public class Professor_frame extends JFrame {
         setLocationRelativeTo(null);
         add(new JLabel("Sveiki, " + user.displayInfo(), SwingConstants.CENTER), BorderLayout.CENTER);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("Pažymiai", new Grade_editor( null));
+        add(tabs, BorderLayout.CENTER);
+
     }
 }
