@@ -192,4 +192,63 @@ public class JDBC_student_repository implements Student_repository {
             throw new RuntimeException("Nepavyko ištrinti studento", e);
         }
     }
+
+    public List<Student> findByGroup(int groupId) {
+        String sql = """
+        SELECT DISTINCT s.student_id, u.user_id, u.first_name, u.last_name, u.login, u.password
+        FROM `group` g
+        JOIN student s ON s.student_id = g.student_id
+        JOIN `user` u ON u.user_id = s.user_id
+        WHERE g.group_id = ? AND g.student_id IS NOT NULL
+        ORDER BY u.last_name, u.first_name
+        """;
+        List<Student> list = new ArrayList<>();
+        try (Connection c = Data_base.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, groupId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new Student(
+                            rs.getInt("user_id"),
+                            rs.getString("login"),
+                            rs.getString("password"),
+                            rs.getString("first_name"),
+                            rs.getString("last_name"),
+                            rs.getInt("student_id"),
+                            groupId
+                    ));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Nepavyko gauti grupės studentų", e);
+        }
+        return list;
+    }
+
+    public void updateCredentials(int studentId, String login, String password) {
+        String getUserSql = "SELECT user_id FROM student WHERE student_id=?";
+        String updUser = "UPDATE `user` SET login=?, password=? WHERE user_id=?";
+
+        try (Connection c = Data_base.getConnection()) {
+            int userId;
+            try (PreparedStatement ps = c.prepareStatement(getUserSql)) {
+                ps.setInt(1, studentId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) throw new SQLException("Studentas nerastas: id=" + studentId);
+                    userId = rs.getInt(1);
+                }
+            }
+
+            try (PreparedStatement ps = c.prepareStatement(updUser)) {
+                ps.setString(1, login);
+                ps.setString(2, password);
+                ps.setInt(3, userId);
+                ps.executeUpdate();
+            }
+        } catch (SQLException e) {
+            // labiausiai tikėtina klaida: duplicate key ant login (UNIQUE)
+            throw new RuntimeException("Nepavyko pakeisti prisijungimo duomenų: " + e.getMessage(), e);
+        }
+    }
+
 }

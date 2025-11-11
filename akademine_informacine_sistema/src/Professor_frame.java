@@ -12,6 +12,5 @@ public class Professor_frame extends JFrame {
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Pažymiai", new Grade_editor( null));
         add(tabs, BorderLayout.CENTER);
-
     }
 }

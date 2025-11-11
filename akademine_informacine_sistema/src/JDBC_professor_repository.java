@@ -180,4 +180,29 @@ public class JDBC_professor_repository implements Professor_repository {
             throw new RuntimeException("Nepavyko ištrinti dėstytojo", e);
         }
     }
+
+    public void updateCredentials(int professorId, String login, String password) {
+        String getUser = "SELECT user_id FROM professor WHERE professor_id=?";
+        String updUser = "UPDATE `user` SET login=?, password=? WHERE user_id=?";
+        try (Connection c = Data_base.getConnection()) {
+            int userId;
+            try (PreparedStatement ps = c.prepareStatement(getUser)) {
+                ps.setInt(1, professorId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) throw new SQLException("Dėstytojas nerastas: id=" + professorId);
+                    userId = rs.getInt(1);
+                }
+            }
+            try (PreparedStatement ps = c.prepareStatement(updUser)) {
+                ps.setString(1, login);
+                ps.setString(2, password);
+                ps.setInt(3, userId);
+                ps.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Nepavyko pakeisti prisijungimo duomenų: " + e.getMessage(), e);
+        }
+    }
+
+
 }

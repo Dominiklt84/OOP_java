@@ -12,6 +12,5 @@ public class Student_frame extends JFrame {
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Mano pažymiai", new Grades_viewer(((Student)user).getStudentId()));
         add(tabs, BorderLayout.CENTER);
-
     }
 }
