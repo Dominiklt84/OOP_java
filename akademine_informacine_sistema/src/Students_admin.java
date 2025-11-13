@@ -4,11 +4,11 @@ import java.awt.*;
 import java.util.List;
 
 public class Students_admin extends JPanel {
+
     private final JDBC_student_repository repo = new JDBC_student_repository();
     private final DefaultTableModel model = new DefaultTableModel(
-            new String[]{"student_id", "Vardas", "Pavardė", "Login", "Slaptažodis"}, 0) {
-        public boolean isCellEditable(int row, int column) { return false; }
-    };
+            new String[]{"ID", "Vardas", "Pavardė", "Login", "Slaptažodis"}, 0
+    );
     private final JTable table = new JTable(model);
 
     public Students_admin() {
@@ -37,8 +37,8 @@ public class Students_admin extends JPanel {
 
     private void refresh() {
         model.setRowCount(0);
-        List<Student> list = repo.findAll();
-        for (Student s : list) {
+        List<Student> students = repo.findAll();
+        for (Student s : students) {
             model.addRow(new Object[]{
                     s.getStudentId(),
                     s.getFirstName(),
@@ -52,7 +52,12 @@ public class Students_admin extends JPanel {
     private void onAdd() {
         JTextField fName = new JTextField();
         JTextField lName = new JTextField();
-        Object[] msg = {"Vardas:", fName, "Pavardė:", lName};
+
+        Object[] msg = {
+                "Vardas:", fName,
+                "Pavardė:", lName
+        };
+
         int ok = JOptionPane.showConfirmDialog(this, msg, "Naujas studentas", JOptionPane.OK_CANCEL_OPTION);
         if (ok == JOptionPane.OK_OPTION) {
             String fn = fName.getText().trim();
@@ -68,24 +73,63 @@ public class Students_admin extends JPanel {
 
     private void onEditName() {
         int row = table.getSelectedRow();
-        if (row == -1) { JOptionPane.showMessageDialog(this, "Pasirinkite studentą"); return; }
-        int studentId = (int) model.getValueAt(row, 0);
-        String curF = String.valueOf(model.getValueAt(row, 1));
-        String curL = String.valueOf(model.getValueAt(row, 2));
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Pasirinkite studentą!");
+            return;
+        }
+        int id = (int) model.getValueAt(row, 0);
+        String oldFirst = String.valueOf(model.getValueAt(row, 1));
+        String oldLast = String.valueOf(model.getValueAt(row, 2));
 
-        JTextField fName = new JTextField(curF);
-        JTextField lName = new JTextField(curL);
-        Object[] msg = {"Vardas:", fName, "Pavardė:", lName};
+        JTextField fName = new JTextField(oldFirst);
+        JTextField lName = new JTextField(oldLast);
+        Object[] msg = {
+                "Vardas:", fName,
+                "Pavardė:", lName
+        };
+
         int ok = JOptionPane.showConfirmDialog(this, msg, "Redaguoti studentą", JOptionPane.OK_CANCEL_OPTION);
         if (ok == JOptionPane.OK_OPTION) {
             String fn = fName.getText().trim();
             String ln = lName.getText().trim();
-            if (fn.isEmpty() || ln.isEmpty()) { JOptionPane.showMessageDialog(this, "Vardas ir pavardė privalomi"); return; }
-            repo.update(studentId, fn, ln);
+            if (fn.isEmpty() || ln.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Vardas ir pavardė privalomi");
+                return;
+            }
+            repo.update(id, fn, ln);
             refresh();
         }
     }
 
+    private void onDelete() {
+        int row = table.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Pasirinkite studentą!");
+            return;
+        }
+
+        int id = (int) model.getValueAt(row, 0);
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Ar tikrai norite ištrinti pasirinktą studentą?",
+                "Patvirtinimas",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                repo.delete(id);
+                refresh();
+            } catch (RuntimeException ex) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        ex.getMessage(),
+                        "Negalima ištrinti studento",
+                        JOptionPane.WARNING_MESSAGE
+                );
+            }
+        }
+    }
     private void onEditCredentials() {
         int row = table.getSelectedRow();
         if (row == -1) { JOptionPane.showMessageDialog(this, "Pasirinkite studentą"); return; }
@@ -107,17 +151,6 @@ public class Students_admin extends JPanel {
             } catch (RuntimeException ex) {
                 JOptionPane.showMessageDialog(this, "Klaida: " + ex.getMessage());
             }
-        }
-    }
-
-    private void onDelete() {
-        int row = table.getSelectedRow();
-        if (row == -1) { JOptionPane.showMessageDialog(this, "Pasirinkite studentą"); return; }
-        int studentId = (int) model.getValueAt(row, 0);
-        int confirm = JOptionPane.showConfirmDialog(this, "Ar tikrai ištrinti?", "Patvirtinimas", JOptionPane.YES_NO_OPTION);
-        if (confirm == JOptionPane.YES_OPTION) {
-            repo.delete(studentId);
-            refresh();
         }
     }
 }

@@ -1,7 +1,7 @@
 public class Student extends User {
 
     private int student_id;
-    private Integer group_id;
+    private Integer group_id; // jei dar nenaudoji, gali būti null
 
     public Student(int user_id, String login, String password,
                    String firstName, String lastName,
@@ -11,21 +11,11 @@ public class Student extends User {
         this.group_id = group_id;
     }
 
-    public int getStudentId() {
-        return student_id;
-    }
+    public int getStudentId() { return student_id; }
+    public void setStudentId(int student_id) { this.student_id = student_id; }
 
-    public void setStudentId(int studentId) {
-        this.student_id = student_id;
-    }
-
-    public Integer getGroupId() {
-        return group_id;
-    }
-
-    public void setGroupId(Integer groupId) {
-        this.group_id = group_id;
-    }
+    public Integer getGroupId() { return group_id; }
+    public void setGroupId(Integer group_id) { this.group_id = group_id; }
 
     public String toString() {
         return getFirstName() + " " + getLastName();

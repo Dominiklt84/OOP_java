@@ -1,9 +1,8 @@
 import javax.swing.*;
 import java.awt.*;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Assignments_admin extends JPanel {
 
@@ -11,7 +10,7 @@ public class Assignments_admin extends JPanel {
     private final JDBC_student_repository studentRepo = new JDBC_student_repository();
     private final JDBC_subject_repository subjectRepo = new JDBC_subject_repository();
 
-    private final JComboBox<Group> cbGroup   = new JComboBox<>();
+    private final JComboBox<Group> cbGroup = new JComboBox<>();
     private final JComboBox<Student> cbStudent = new JComboBox<>();
     private final JComboBox<Subject> cbSubject = new JComboBox<>();
 
@@ -34,33 +33,37 @@ public class Assignments_admin extends JPanel {
         gc.gridx = 0; gc.gridy = r; add(new JLabel("Dalykas:"), gc);
         gc.gridx = 1; add(cbSubject, gc); r++;
 
-        JButton btnStudToGroup = new JButton("Priskirti studentą grupei");
-        JButton btnSubjToGroup = new JButton("Priskirti dalyką grupei");
-        JButton btnRemoveStud  = new JButton("Pašalinti studentą iš grupės");
-        JButton btnRemoveSubj  = new JButton("Pašalinti dalyką iš grupės");
-        JButton btnRefreshInfo = new JButton("Rodyti priskyrimus");
+        JButton btnAssignStud = new JButton("Pridėti studentą į grupę");
+        JButton btnRemoveStud = new JButton("Šalinti studentą iš grupės");
+        JButton btnAssignSubj = new JButton("Pridėti dalyką grupei");
+        JButton btnRemoveSubj = new JButton("Šalinti dalyką iš grupės");
+        JButton btnRefresh    = new JButton("Atnaujinti sąrašus");
 
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        actions.add(btnStudToGroup);
-        actions.add(btnSubjToGroup);
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        actions.add(btnAssignStud);
         actions.add(btnRemoveStud);
+        actions.add(btnAssignSubj);
         actions.add(btnRemoveSubj);
-        actions.add(btnRefreshInfo);
+        actions.add(btnRefresh);
 
-        gc.gridx = 0; gc.gridy = r; gc.gridwidth = 2; add(actions, gc); r++;
+        gc.gridx = 0; gc.gridy = r; gc.gridwidth = 2;
+        add(actions, gc); r++;
 
         gc.gridx = 0; gc.gridy = r; gc.gridwidth = 2;
         add(new JScrollPane(listInfo), gc);
 
         loadCombos();
+        loadAssignmentsInfo();
 
         cbGroup.addActionListener(e -> loadAssignmentsInfo());
-
-        btnStudToGroup.addActionListener(e -> assignStudentToGroup());
-        btnSubjToGroup.addActionListener(e -> assignSubjectToGroup());
+        btnAssignStud.addActionListener(e -> assignStudentToGroup());
         btnRemoveStud.addActionListener(e -> removeStudentFromGroup());
+        btnAssignSubj.addActionListener(e -> assignSubjectToGroup());
         btnRemoveSubj.addActionListener(e -> removeSubjectFromGroup());
-        btnRefreshInfo.addActionListener(e -> loadAssignmentsInfo());
+        btnRefresh.addActionListener(e -> {
+            loadCombos();
+            loadAssignmentsInfo();
+        });
     }
 
     private void loadCombos() {
@@ -72,63 +75,136 @@ public class Assignments_admin extends JPanel {
 
         cbSubject.removeAllItems();
         for (Subject s : subjectRepo.findAll()) cbSubject.addItem(s);
-
-        loadAssignmentsInfo();
     }
 
     private void assignStudentToGroup() {
         Group g = (Group) cbGroup.getSelectedItem();
         Student s = (Student) cbStudent.getSelectedItem();
-        if (g == null || s == null) { msg("Pasirinkite grupę ir studentą"); return; }
+        if (g == null || s == null) {
+            msg("Pasirinkite grupę ir studentą");
+            return;
+        }
 
-        String sql = "INSERT INTO `group` (group_id, student_id, subject_id, title) VALUES (?, ?, NULL, ?)";
-        try (Connection c = Data_base.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1, g.getId());
-            ps.setInt(2, s.getStudentId());
-            ps.setString(3, g.getTitle());
-            ps.executeUpdate();
-            msg("Studentas priskirtas grupei.");
+        String sqlCheckExistingGroup = """
+        SELECT gr.group_id, gr.title
+        FROM group_student gs
+        JOIN `group` gr ON gr.group_id = gs.group_id
+        WHERE gs.student_id = ?
+        LIMIT 1
+        """;
+
+        String nextIdSql = "SELECT COALESCE(MAX(group_student_id),0)+1 FROM group_student";
+        String insertSql = "INSERT INTO group_student (group_student_id, group_id, student_id) VALUES (?, ?, ?)";
+
+        try (Connection c = Data_base.getConnection()) {
+            try (PreparedStatement ps = c.prepareStatement(sqlCheckExistingGroup)) {
+                ps.setInt(1, s.getStudentId());
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        int existingGroupId = rs.getInt("group_id");
+                        String existingGroupTitle = rs.getString("title");
+
+                        if (existingGroupId == g.getId()) {
+                            msg("Šis studentas jau priskirtas šiai grupei.");
+                        } else {
+                            msg("Šis studentas jau priskirtas grupei: " + existingGroupTitle +
+                                    ".\nPirmiausia pašalinkite jį iš tos grupės Priskyrimų lange.");
+                        }
+                        return;
+                    }
+                }
+            }
+
+            int nextId;
+            try (PreparedStatement ps = c.prepareStatement(nextIdSql);
+                 ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                nextId = rs.getInt(1);
+            }
+
+            try (PreparedStatement ps = c.prepareStatement(insertSql)) {
+                ps.setInt(1, nextId);
+                ps.setInt(2, g.getId());
+                ps.setInt(3, s.getStudentId());
+                ps.executeUpdate();
+            }
+
+            msg("Studentas sėkmingai priskirtas grupei.");
             loadAssignmentsInfo();
+
         } catch (SQLException e) {
-            msg("Klaida: " + e.getMessage());
+            msg("Klaida priskiriant studentą: " + e.getMessage());
         }
     }
 
-    private void assignSubjectToGroup() {
-        Group g = (Group) cbGroup.getSelectedItem();
-        Subject sub = (Subject) cbSubject.getSelectedItem();
-        if (g == null || sub == null) { msg("Pasirinkite grupę ir dalyką"); return; }
-
-        String sql = "INSERT INTO `group` (group_id, student_id, subject_id, title) VALUES (?, NULL, ?, ?)";
-        try (Connection c = Data_base.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1, g.getId());
-            ps.setInt(2, sub.getSubjectId());
-            ps.setString(3, g.getTitle());
-            ps.executeUpdate();
-            msg("Dalykas priskirtas grupei.");
-            loadAssignmentsInfo();
-        } catch (SQLException e) {
-            msg("Klaida: " + e.getMessage());
-        }
-    }
 
     private void removeStudentFromGroup() {
         Group g = (Group) cbGroup.getSelectedItem();
         Student s = (Student) cbStudent.getSelectedItem();
         if (g == null || s == null) { msg("Pasirinkite grupę ir studentą"); return; }
 
-        String sql = "DELETE FROM `group` WHERE group_id=? AND student_id=?";
+        String sql = "DELETE FROM group_student WHERE group_id=? AND student_id=?";
         try (Connection c = Data_base.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, g.getId());
             ps.setInt(2, s.getStudentId());
-            int n = ps.executeUpdate();
-            msg(n > 0 ? "Studentas pašalintas iš grupės." : "Įrašas nerastas.");
+            int rows = ps.executeUpdate();
+            if (rows == 0) {
+                msg("Šis studentas šiai grupei nepriskirtas.");
+            } else {
+                msg("Studentas sėkmingai pašalintas iš grupės.");
+            }
             loadAssignmentsInfo();
         } catch (SQLException e) {
-            msg("Klaida: " + e.getMessage());
+            msg("Klaida šalinant studentą: " + e.getMessage());
+        }
+    }
+
+    private void assignSubjectToGroup() {
+        Group g = (Group) cbGroup.getSelectedItem();
+        Subject sub = (Subject) cbSubject.getSelectedItem();
+        if (g == null || sub == null) {
+            msg("Pasirinkite grupę ir dalyką");
+            return;
+        }
+
+        String checkSql = "SELECT COUNT(*) FROM group_subject WHERE group_id=? AND subject_id=?";
+        String nextIdSql = "SELECT COALESCE(MAX(group_subject_id),0)+1 FROM group_subject";
+        String insertSql = "INSERT INTO group_subject (group_subject_id, group_id, subject_id) VALUES (?, ?, ?)";
+
+        try (Connection c = Data_base.getConnection()) {
+            try (PreparedStatement ps = c.prepareStatement(checkSql)) {
+                ps.setInt(1, g.getId());
+                ps.setInt(2, sub.getSubjectId());
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    int cnt = rs.getInt(1);
+                    if (cnt > 0) {
+                        msg("Šis dalykas jau priskirtas šiai grupei.");
+                        return;
+                    }
+                }
+            }
+
+            int nextId;
+            try (PreparedStatement ps = c.prepareStatement(nextIdSql);
+                 ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                nextId = rs.getInt(1);
+            }
+
+            try (PreparedStatement ps = c.prepareStatement(insertSql)) {
+                ps.setInt(1, nextId);
+                ps.setInt(2, g.getId());
+                ps.setInt(3, sub.getSubjectId());
+                ps.executeUpdate();
+            }
+
+            msg("Dalykas sėkmingai priskirtas grupei.");
+            loadAssignmentsInfo();
+
+        } catch (SQLException e) {
+            msg("Klaida priskiriant dalyką: " + e.getMessage());
         }
     }
 
@@ -137,16 +213,20 @@ public class Assignments_admin extends JPanel {
         Subject sub = (Subject) cbSubject.getSelectedItem();
         if (g == null || sub == null) { msg("Pasirinkite grupę ir dalyką"); return; }
 
-        String sql = "DELETE FROM `group` WHERE group_id=? AND subject_id=?";
+        String sql = "DELETE FROM group_subject WHERE group_id=? AND subject_id=?";
         try (Connection c = Data_base.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, g.getId());
             ps.setInt(2, sub.getSubjectId());
-            int n = ps.executeUpdate();
-            msg(n > 0 ? "Dalykas nuimtas nuo grupės." : "Įrašas nerastas.");
+            int rows = ps.executeUpdate();
+            if (rows == 0) {
+                msg("Šis dalykas šiai grupei nepriskirtas.");
+            } else {
+                msg("Dalykas sėkmingai pašalintas iš grupės.");
+            }
             loadAssignmentsInfo();
         } catch (SQLException e) {
-            msg("Klaida: " + e.getMessage());
+            msg("Klaida šalinant dalyką: " + e.getMessage());
         }
     }
 
@@ -155,54 +235,73 @@ public class Assignments_admin extends JPanel {
         Group g = (Group) cbGroup.getSelectedItem();
         if (g == null) return;
 
-        String studSql = """
+        listModel.addElement("Grupė: " + g.getTitle());
+        listModel.addElement("");
+
+        List<String> students = getStudentsInGroup(g.getId());
+        listModel.addElement("Studentai šioje grupėje:");
+        if (students.isEmpty()) {
+            listModel.addElement("  (nėra priskirtų studentų)");
+        } else {
+            for (String s : students) listModel.addElement("  • " + s);
+        }
+        listModel.addElement("");
+
+        List<String> subjects = getSubjectsInGroup(g.getId());
+        listModel.addElement("Dalykai šioje grupėje:");
+        if (subjects.isEmpty()) {
+            listModel.addElement("  (nėra priskirtų dalykų)");
+        } else {
+            for (String s : subjects) listModel.addElement("  • " + s);
+        }
+    }
+
+    private List<String> getStudentsInGroup(int groupId) {
+        List<String> list = new ArrayList<>();
+        String sql = """
             SELECT u.first_name, u.last_name
-            FROM `group` gr
-            JOIN student s ON s.student_id = gr.student_id
+            FROM group_student gs
+            JOIN student s ON s.student_id = gs.student_id
             JOIN `user` u ON u.user_id = s.user_id
-            WHERE gr.group_id = ? AND gr.student_id IS NOT NULL
+            WHERE gs.group_id = ?
             ORDER BY u.last_name, u.first_name
             """;
-
-        String subjSql = """
-            SELECT st.title AS subject_title, sb.credits
-            FROM `group` gr
-            JOIN subject sb ON sb.subject_id = gr.subject_id
-            JOIN subject_type st ON st.sub_type_id = sb.sub_type_id
-            WHERE gr.group_id = ? AND gr.subject_id IS NOT NULL
-            ORDER BY subject_title
-            """;
-
-        try (Connection c = Data_base.getConnection()) {
-            try (PreparedStatement ps = c.prepareStatement(studSql)) {
-                ps.setInt(1, g.getId());
-                try (ResultSet rs = ps.executeQuery()) {
-                    listModel.addElement("— Studentai grupėje " + g.getTitle() + ":");
-                    boolean any = false;
-                    while (rs.next()) {
-                        any = true;
-                        listModel.addElement("   • " + rs.getString("first_name") + " " + rs.getString("last_name"));
-                    }
-                    if (!any) listModel.addElement("   (nėra)");
-                    listModel.addElement("");
-                }
-            }
-            try (PreparedStatement ps = c.prepareStatement(subjSql)) {
-                ps.setInt(1, g.getId());
-                try (ResultSet rs = ps.executeQuery()) {
-                    listModel.addElement("— Dalykai grupėje " + g.getTitle() + ":");
-                    boolean any = false;
-                    while (rs.next()) {
-                        any = true;
-                        listModel.addElement("   • " + rs.getString("subject_title") +
-                                " (" + rs.getInt("credits") + " kr.)");
-                    }
-                    if (!any) listModel.addElement("   (nėra)");
+        try (Connection c = Data_base.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, groupId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(rs.getString("first_name") + " " + rs.getString("last_name"));
                 }
             }
         } catch (SQLException e) {
-            msg("Klaida: " + e.getMessage());
+            msg("Klaida skaitant grupės studentus: " + e.getMessage());
         }
+        return list;
+    }
+
+    private List<String> getSubjectsInGroup(int groupId) {
+        List<String> list = new ArrayList<>();
+        String sql = """
+            SELECT st.title AS subject_title, sb.credits
+            FROM group_subject gs
+            JOIN subject sb ON sb.subject_id = gs.subject_id
+            JOIN subject_type st ON st.sub_type_id = sb.sub_type_id
+            WHERE gs.group_id = ?
+            ORDER BY st.title
+            """;
+        try (Connection c = Data_base.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, groupId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(rs.getString("subject_title") + " (" + rs.getInt("credits") + " kr.)");
+                }
+            }
+        } catch (SQLException e) {
+            msg("Klaida skaitant grupės dalykus: " + e.getMessage());
+        }
+        return list;
     }
 
     private void msg(String s) { JOptionPane.showMessageDialog(this, s); }

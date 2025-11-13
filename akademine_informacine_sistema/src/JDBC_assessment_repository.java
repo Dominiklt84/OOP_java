@@ -25,7 +25,10 @@ public class JDBC_assessment_repository implements Assessment_repository {
                 "SELECT a.assessment_id, a.student_id, a.subject_id, a.professor_id, a.sem_type_id, a.worth, a.comment, a.introduced " +
                         "FROM assessment a ");
         List<Object> params = new ArrayList<>();
-        if (group_id != null) { sql.append("JOIN `group` g ON g.student_id=a.student_id AND g.group_id=? "); params.add(group_id); }
+        if (group_id != null) {
+            sql.append("JOIN group_student gs ON gs.student_id = a.student_id AND gs.group_id = ? ");
+            params.add(group_id);
+        }
         sql.append("WHERE 1=1 ");
         if (professor_id != null) { sql.append("AND a.professor_id=? "); params.add(professor_id); }
         if (subject_id   != null) { sql.append("AND a.subject_id=? ");   params.add(subject_id); }

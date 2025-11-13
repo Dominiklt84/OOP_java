@@ -66,11 +66,27 @@ public class Groups_admin extends JPanel {
             JOptionPane.showMessageDialog(this, "Pasirinkite grupę!");
             return;
         }
+
         int id = (int) model.getValueAt(row, 0);
-        int confirm = JOptionPane.showConfirmDialog(this, "Ar tikrai norite ištrinti?", "Patvirtinimas", JOptionPane.YES_NO_OPTION);
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Ar tikrai norite ištrinti pasirinktą grupę?",
+                "Patvirtinimas",
+                JOptionPane.YES_NO_OPTION
+        );
+
         if (confirm == JOptionPane.YES_OPTION) {
-            repo.delete(id);
-            refresh();
+            try {
+                repo.delete(id);
+                refresh();
+            } catch (RuntimeException ex) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        ex.getMessage(),
+                        "Negalima ištrinti grupės",
+                        JOptionPane.WARNING_MESSAGE
+                );
+            }
         }
     }
 }

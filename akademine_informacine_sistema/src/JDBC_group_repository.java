@@ -2,6 +2,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.sql.SQLIntegrityConstraintViolationException;
 
 public class JDBC_group_repository implements Group_repository {
 
@@ -71,14 +72,27 @@ public class JDBC_group_repository implements Group_repository {
         }
     }
 
-    public void delete(int id) {
-        String sql = "DELETE FROM `group` WHERE group_id=?";
+    public void delete(int groupId) {
+        String sql = "DELETE FROM `group` WHERE group_id = ?";
+
         try (Connection c = Data_base.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1, id);
+
+            ps.setInt(1, groupId);
             ps.executeUpdate();
+
+        } catch (SQLIntegrityConstraintViolationException e) {
+            throw new RuntimeException(
+                    "Negalima ištrinti grupės.\n" +
+                            "Pirma:\n" +
+                            " • atjunkite dėstytojus nuo šios grupės (jei priskirti),\n" +
+                            " • pašalinkite studentus iš grupės (Assignments skiltyje),\n" +
+                            " • nuimkite dalykus nuo grupės,\n" +
+                            " • įsitikinkite, kad nėra pažymių, priklausančių šiai grupei.\n\n" +
+                            "Tada bandykite trinti dar kartą.", e);
         } catch (SQLException e) {
-            throw new RuntimeException("Nepavyko ištrinti grupės", e);
+            throw new RuntimeException("Nepavyko ištrinti grupės: " + e.getMessage(), e);
         }
     }
+
 }

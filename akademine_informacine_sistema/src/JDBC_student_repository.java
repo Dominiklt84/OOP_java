@@ -2,6 +2,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.sql.SQLIntegrityConstraintViolationException;
 
 public class JDBC_student_repository implements Student_repository {
 
@@ -66,52 +67,57 @@ public class JDBC_student_repository implements Student_repository {
 
     private int getStudentTypeId(Connection c) throws SQLException {
         try (PreparedStatement ps = c.prepareStatement(
-                "SELECT user_type_id FROM `user_type` WHERE title='STUDENT'")) {
+                "SELECT user_type_id FROM `user_type` WHERE UPPER(title)=UPPER('STUDENT') LIMIT 1")) {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) return rs.getInt(1);
-                throw new SQLException("Lentelėje user_type nėra įrašo 'STUDENT'");
             }
         }
+        throw new SQLException("Lentelėje user_type nerasta 'STUDENT'. Įterpk įrašą.");
     }
 
     public int add(String firstName, String lastName) {
         String login = firstName;
         String password = lastName;
 
-        String insertUser = "INSERT INTO `user` (user_type_id, first_name, last_name, login, password) VALUES (?, ?, ?, ?, ?)";
-        String insertStudent = "INSERT INTO student (user_id) VALUES (?)";
+        String getNextUserIdSql = "SELECT COALESCE(MAX(user_id),0)+1 AS next_id FROM `user`";
+        String insertUser       = "INSERT INTO `user` (user_id, user_type_id, first_name, last_name, login, password) VALUES (?, ?, ?, ?, ?, ?)";
+        String insertStudent    = "INSERT INTO student (student_id, user_id) VALUES (?, ?)"; // jei student_id irgi ne AUTO_INCREMENT
 
         try (Connection c = Data_base.getConnection()) {
             c.setAutoCommit(false);
             try {
                 int typeId = getStudentTypeId(c);
 
-                int newUserId;
-                try (PreparedStatement ps = c.prepareStatement(insertUser, Statement.RETURN_GENERATED_KEYS)) {
-                    ps.setInt(1, typeId);
-                    ps.setString(2, firstName);
-                    ps.setString(3, lastName);
-                    ps.setString(4, login);
-                    ps.setString(5, password);
-                    ps.executeUpdate();
-                    try (ResultSet keys = ps.getGeneratedKeys()) {
-                        if (!keys.next()) throw new SQLException("Negauti user_id raktai");
-                        newUserId = keys.getInt(1);
-                    }
+                int nextUserId = 1;
+                try (Statement st = c.createStatement();
+                     ResultSet rs = st.executeQuery(getNextUserIdSql)) {
+                    if (rs.next()) nextUserId = rs.getInt("next_id");
                 }
 
-                int newStudentId;
-                try (PreparedStatement ps = c.prepareStatement(insertStudent, Statement.RETURN_GENERATED_KEYS)) {
-                    ps.setInt(1, newUserId);
+                try (PreparedStatement ps = c.prepareStatement(insertUser)) {
+                    ps.setInt(1, nextUserId);
+                    ps.setInt(2, typeId);
+                    ps.setString(3, firstName);
+                    ps.setString(4, lastName);
+                    ps.setString(5, login);
+                    ps.setString(6, password);
                     ps.executeUpdate();
-                    try (ResultSet keys = ps.getGeneratedKeys()) {
-                        if (!keys.next()) throw new SQLException("Negauti student_id raktai");
-                        newStudentId = keys.getInt(1);
-                    }
+                }
+
+                int nextStudentId = 1;
+                try (Statement st = c.createStatement();
+                     ResultSet rs = st.executeQuery("SELECT COALESCE(MAX(student_id),0)+1 AS next_id FROM student")) {
+                    if (rs.next()) nextStudentId = rs.getInt("next_id");
+                }
+
+                try (PreparedStatement ps = c.prepareStatement(insertStudent)) {
+                    ps.setInt(1, nextStudentId);
+                    ps.setInt(2, nextUserId);
+                    ps.executeUpdate();
                 }
 
                 c.commit();
-                return newStudentId;
+                return nextStudentId;
             } catch (SQLException ex) {
                 c.rollback();
                 throw ex;
@@ -119,9 +125,10 @@ public class JDBC_student_repository implements Student_repository {
                 c.setAutoCommit(true);
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Nepavyko pridėti studento", e);
+            throw new RuntimeException("Nepavyko pridėti studento: " + e.getMessage(), e);
         }
     }
+
 
     public void update(int studentId, String firstName, String lastName) {
         String getUserSql = "SELECT user_id FROM student WHERE student_id=?";
@@ -140,8 +147,8 @@ public class JDBC_student_repository implements Student_repository {
             try (PreparedStatement ps = c.prepareStatement(updUser)) {
                 ps.setString(1, firstName);
                 ps.setString(2, lastName);
-                ps.setString(3, firstName);  // login = vardas
-                ps.setString(4, lastName);   // password = pavardė
+                ps.setString(3, firstName);
+                ps.setString(4, lastName);
                 ps.setInt(5, userId);
                 ps.executeUpdate();
             }
@@ -150,11 +157,35 @@ public class JDBC_student_repository implements Student_repository {
         }
     }
 
+    public void updateCredentials(int studentId, String login, String password) {
+        String getUserSql = "SELECT user_id FROM student WHERE student_id=?";
+        String updUser    = "UPDATE `user` SET login=?, password=? WHERE user_id=?";
+
+        try (Connection c = Data_base.getConnection()) {
+            int userId;
+            try (PreparedStatement ps = c.prepareStatement(getUserSql)) {
+                ps.setInt(1, studentId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) throw new SQLException("Studentas nerastas: id=" + studentId);
+                    userId = rs.getInt(1);
+                }
+            }
+
+            try (PreparedStatement ps = c.prepareStatement(updUser)) {
+                ps.setString(1, login);
+                ps.setString(2, password);
+                ps.setInt(3, userId);
+                ps.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Nepavyko pakeisti prisijungimo duomenų: " + e.getMessage(), e);
+        }
+    }
+
     public void delete(int studentId) {
         String getUserSql = "SELECT user_id FROM student WHERE student_id=?";
-        String delFromGroup = "DELETE FROM `group` WHERE student_id=?"; // gali nebūti – ok
         String delStudent = "DELETE FROM student WHERE student_id=?";
-        String delUser = "DELETE FROM `user` WHERE user_id=?";
+        String delUser    = "DELETE FROM `user` WHERE user_id=?";
 
         try (Connection c = Data_base.getConnection()) {
             c.setAutoCommit(false);
@@ -168,38 +199,45 @@ public class JDBC_student_repository implements Student_repository {
                     }
                 }
 
-                try (PreparedStatement ps = c.prepareStatement(delFromGroup)) {
-                    ps.setInt(1, studentId);
-                    ps.executeUpdate();
-                }
                 try (PreparedStatement ps = c.prepareStatement(delStudent)) {
                     ps.setInt(1, studentId);
                     ps.executeUpdate();
                 }
+
                 try (PreparedStatement ps = c.prepareStatement(delUser)) {
                     ps.setInt(1, userId);
                     ps.executeUpdate();
                 }
 
                 c.commit();
-            } catch (SQLException ex) {
+            } catch (SQLIntegrityConstraintViolationException e) {
                 c.rollback();
-                throw ex;
+                throw new RuntimeException(
+                        "Negalima ištrinti studento.\n" +
+                                "Pirma:\n" +
+                                " • ištrinkite arba pakoreguokite visus šio studento pažymius,\n" +
+                                " • pašalinkite studentą iš grupių (Assignments skiltyje),\n" +
+                                " • įsitikinkite, kad nėra kitų ryšių su šiuo studentu.\n\n" +
+                                "Tada bandykite trinti dar kartą.", e);
+            } catch (SQLException e) {
+                c.rollback();
+                throw new RuntimeException("Nepavyko ištrinti studento: " + e.getMessage(), e);
             } finally {
                 c.setAutoCommit(true);
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Nepavyko ištrinti studento", e);
+            throw new RuntimeException("Nepavyko ištrinti studento: " + e.getMessage(), e);
         }
     }
+
 
     public List<Student> findByGroup(int groupId) {
         String sql = """
         SELECT DISTINCT s.student_id, u.user_id, u.first_name, u.last_name, u.login, u.password
-        FROM `group` g
-        JOIN student s ON s.student_id = g.student_id
+        FROM group_student gs
+        JOIN student s ON s.student_id = gs.student_id
         JOIN `user` u ON u.user_id = s.user_id
-        WHERE g.group_id = ? AND g.student_id IS NOT NULL
+        WHERE gs.group_id = ?
         ORDER BY u.last_name, u.first_name
         """;
         List<Student> list = new ArrayList<>();
@@ -223,32 +261,6 @@ public class JDBC_student_repository implements Student_repository {
             throw new RuntimeException("Nepavyko gauti grupės studentų", e);
         }
         return list;
-    }
-
-    public void updateCredentials(int studentId, String login, String password) {
-        String getUserSql = "SELECT user_id FROM student WHERE student_id=?";
-        String updUser = "UPDATE `user` SET login=?, password=? WHERE user_id=?";
-
-        try (Connection c = Data_base.getConnection()) {
-            int userId;
-            try (PreparedStatement ps = c.prepareStatement(getUserSql)) {
-                ps.setInt(1, studentId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (!rs.next()) throw new SQLException("Studentas nerastas: id=" + studentId);
-                    userId = rs.getInt(1);
-                }
-            }
-
-            try (PreparedStatement ps = c.prepareStatement(updUser)) {
-                ps.setString(1, login);
-                ps.setString(2, password);
-                ps.setInt(3, userId);
-                ps.executeUpdate();
-            }
-        } catch (SQLException e) {
-            // labiausiai tikėtina klaida: duplicate key ant login (UNIQUE)
-            throw new RuntimeException("Nepavyko pakeisti prisijungimo duomenų: " + e.getMessage(), e);
-        }
     }
 
 }

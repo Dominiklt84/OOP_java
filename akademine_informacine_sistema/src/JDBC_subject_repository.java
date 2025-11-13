@@ -2,6 +2,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.sql.SQLIntegrityConstraintViolationException;
 
 public class JDBC_subject_repository implements Subject_repository {
 
@@ -50,21 +51,29 @@ public class JDBC_subject_repository implements Subject_repository {
     }
 
     public int add(int subTypeId, int credits) {
-        String sql = "INSERT INTO subject (sub_type_id, credits) VALUES (?, ?)";
-        try (Connection c = Data_base.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setInt(1, subTypeId);
-            ps.setInt(2, credits);
-            ps.executeUpdate();
-            try (ResultSet rs = ps.getGeneratedKeys()) {
-                if (rs.next()) return rs.getInt(1);
-            }
+        String getNextIdSql = "SELECT COALESCE(MAX(subject_id),0)+1 AS next_id FROM subject";
+        String insertSql = "INSERT INTO subject (subject_id, sub_type_id, credits) VALUES (?, ?, ?)";
+
+        try (Connection c = Data_base.getConnection()) {
+
+            int nextId = 1;
             try (Statement st = c.createStatement();
-                 ResultSet rs = st.executeQuery("SELECT COALESCE(MAX(subject_id),0) FROM subject")) {
-                if (rs.next()) return rs.getInt(1);
+                 ResultSet rs = st.executeQuery(getNextIdSql)) {
+                if (rs.next()) nextId = rs.getInt("next_id");
             }
-            return 0;
-        } catch (SQLException e) { throw new RuntimeException("Nepavyko pridėti dalyko", e); }
+
+            try (PreparedStatement ps = c.prepareStatement(insertSql)) {
+                ps.setInt(1, nextId);
+                ps.setInt(2, subTypeId);
+                ps.setInt(3, credits);
+                ps.executeUpdate();
+            }
+
+            return nextId;
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Nepavyko pridėti dalyko: " + e.getMessage(), e);
+        }
     }
 
     public void update(int subjectId, int subTypeId, int credits) {
@@ -80,19 +89,33 @@ public class JDBC_subject_repository implements Subject_repository {
 
     public void delete(int subjectId) {
         String sql = "DELETE FROM subject WHERE subject_id=?";
+
         try (Connection c = Data_base.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
+
             ps.setInt(1, subjectId);
             ps.executeUpdate();
-        } catch (SQLException e) { throw new RuntimeException("Nepavyko ištrinti dalyko", e); }
+
+        } catch (SQLIntegrityConstraintViolationException e) {
+            throw new RuntimeException(
+                    "Negalima ištrinti dalyko.\n" +
+                            "Pirma:\n" +
+                            " • nuimkite šį dalyką nuo visų grupių (Assignments skiltyje),\n" +
+                            " • ištrinkite pažymius, susijusius su šiuo dalyku,\n" +
+                            " • įsitikinkite, kad nėra kitų ryšių su šiuo dalyku.\n\n" +
+                            "Tada bandykite trinti dar kartą.", e);
+        } catch (SQLException e) {
+            throw new RuntimeException("Nepavyko ištrinti dalyko: " + e.getMessage(), e);
+        }
     }
+
 
     public java.util.Map<Integer, String> subjectNameMap() {
         String sql = """
-        SELECT s.subject_id, st.title AS type_title
-        FROM subject s
-        JOIN subject_type st ON st.sub_type_id = s.sub_type_id
-        """;
+            SELECT s.subject_id, st.title AS type_title
+            FROM subject s
+            JOIN subject_type st ON st.sub_type_id = s.sub_type_id
+            """;
         java.util.Map<Integer,String> map = new java.util.HashMap<>();
         try (Connection c = Data_base.getConnection();
              Statement st = c.createStatement();
@@ -103,5 +126,4 @@ public class JDBC_subject_repository implements Subject_repository {
         }
         return map;
     }
-
 }

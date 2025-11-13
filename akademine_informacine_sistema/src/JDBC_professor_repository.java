@@ -2,17 +2,18 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.sql.SQLIntegrityConstraintViolationException;
 
 public class JDBC_professor_repository implements Professor_repository {
 
     private int getProfessorTypeId(Connection c) throws SQLException {
         try (PreparedStatement ps = c.prepareStatement(
-                "SELECT user_type_id FROM `user_type` WHERE title='PROFESSOR'")) {
+                "SELECT user_type_id FROM `user_type` WHERE UPPER(title)=UPPER('PROFESSOR') LIMIT 1")) {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) return rs.getInt(1);
-                throw new SQLException("user_type neturi 'PROFESSOR'");
             }
         }
+        throw new SQLException("user_type neturi 'PROFESSOR' įrašo");
     }
 
     public List<Professor> findAll() {
@@ -76,40 +77,45 @@ public class JDBC_professor_repository implements Professor_repository {
         String login = firstName;
         String password = lastName;
 
-        String insUser = "INSERT INTO `user` (user_type_id, first_name, last_name, login, password) VALUES (?, ?, ?, ?, ?)";
-        String insProf = "INSERT INTO professor (user_id) VALUES (?)";
+        String getNextUserIdSql = "SELECT COALESCE(MAX(user_id),0)+1 AS next_id FROM `user`";
+        String insertUser       = "INSERT INTO `user` (user_id, user_type_id, first_name, last_name, login, password) VALUES (?, ?, ?, ?, ?, ?)";
+        String insertProf       = "INSERT INTO professor (professor_id, user_id, group_id) VALUES (?, ?, NULL)";
 
         try (Connection c = Data_base.getConnection()) {
             c.setAutoCommit(false);
             try {
                 int typeId = getProfessorTypeId(c);
 
-                int newUserId;
-                try (PreparedStatement ps = c.prepareStatement(insUser, Statement.RETURN_GENERATED_KEYS)) {
-                    ps.setInt(1, typeId);
-                    ps.setString(2, firstName);
-                    ps.setString(3, lastName);
-                    ps.setString(4, login);
-                    ps.setString(5, password);
-                    ps.executeUpdate();
-                    try (ResultSet keys = ps.getGeneratedKeys()) {
-                        if (!keys.next()) throw new SQLException("Negauti user_id");
-                        newUserId = keys.getInt(1);
-                    }
+                int nextUserId = 1;
+                try (Statement st = c.createStatement();
+                     ResultSet rs = st.executeQuery(getNextUserIdSql)) {
+                    if (rs.next()) nextUserId = rs.getInt("next_id");
                 }
 
-                int newProfId;
-                try (PreparedStatement ps = c.prepareStatement(insProf, Statement.RETURN_GENERATED_KEYS)) {
-                    ps.setInt(1, newUserId);
+                try (PreparedStatement ps = c.prepareStatement(insertUser)) {
+                    ps.setInt(1, nextUserId);
+                    ps.setInt(2, typeId);
+                    ps.setString(3, firstName);
+                    ps.setString(4, lastName);
+                    ps.setString(5, login);
+                    ps.setString(6, password);
                     ps.executeUpdate();
-                    try (ResultSet keys = ps.getGeneratedKeys()) {
-                        if (!keys.next()) throw new SQLException("Negauti professor_id");
-                        newProfId = keys.getInt(1);
-                    }
+                }
+
+                int nextProfId = 1;
+                try (Statement st = c.createStatement();
+                     ResultSet rs = st.executeQuery("SELECT COALESCE(MAX(professor_id),0)+1 AS next_id FROM professor")) {
+                    if (rs.next()) nextProfId = rs.getInt("next_id");
+                }
+
+                try (PreparedStatement ps = c.prepareStatement(insertProf)) {
+                    ps.setInt(1, nextProfId);
+                    ps.setInt(2, nextUserId);
+                    ps.executeUpdate();
                 }
 
                 c.commit();
-                return newProfId;
+                return nextProfId;
             } catch (SQLException ex) {
                 c.rollback();
                 throw ex;
@@ -117,7 +123,7 @@ public class JDBC_professor_repository implements Professor_repository {
                 c.setAutoCommit(true);
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Nepavyko pridėti dėstytojo", e);
+            throw new RuntimeException("Nepavyko pridėti dėstytojo: " + e.getMessage(), e);
         }
     }
 
@@ -146,41 +152,6 @@ public class JDBC_professor_repository implements Professor_repository {
         }
     }
 
-    public void delete(int professorId) {
-        String getUser = "SELECT user_id FROM professor WHERE professor_id=?";
-        String delProf = "DELETE FROM professor WHERE professor_id=?";
-        String delUser = "DELETE FROM `user` WHERE user_id=?";
-        try (Connection c = Data_base.getConnection()) {
-            c.setAutoCommit(false);
-            try {
-                int userId;
-                try (PreparedStatement ps = c.prepareStatement(getUser)) {
-                    ps.setInt(1, professorId);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (!rs.next()) throw new SQLException("Dėstytojas nerastas: id=" + professorId);
-                        userId = rs.getInt(1);
-                    }
-                }
-                try (PreparedStatement ps = c.prepareStatement(delProf)) {
-                    ps.setInt(1, professorId);
-                    ps.executeUpdate();
-                }
-                try (PreparedStatement ps = c.prepareStatement(delUser)) {
-                    ps.setInt(1, userId);
-                    ps.executeUpdate();
-                }
-                c.commit();
-            } catch (SQLException ex) {
-                c.rollback();
-                throw ex;
-            } finally {
-                c.setAutoCommit(true);
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Nepavyko ištrinti dėstytojo", e);
-        }
-    }
-
     public void updateCredentials(int professorId, String login, String password) {
         String getUser = "SELECT user_id FROM professor WHERE professor_id=?";
         String updUser = "UPDATE `user` SET login=?, password=? WHERE user_id=?";
@@ -204,5 +175,53 @@ public class JDBC_professor_repository implements Professor_repository {
         }
     }
 
+    public void delete(int professorId) {
+        String getUser = "SELECT user_id FROM professor WHERE professor_id=?";
+        String delProf = "DELETE FROM professor WHERE professor_id=?";
+        String delUser = "DELETE FROM `user` WHERE user_id=?";
+
+        try (Connection c = Data_base.getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                int userId;
+
+                try (PreparedStatement ps = c.prepareStatement(getUser)) {
+                    ps.setInt(1, professorId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("Dėstytojas nerastas: id=" + professorId);
+                        userId = rs.getInt(1);
+                    }
+                }
+
+                try (PreparedStatement ps = c.prepareStatement(delProf)) {
+                    ps.setInt(1, professorId);
+                    ps.executeUpdate();
+                }
+
+                try (PreparedStatement ps = c.prepareStatement(delUser)) {
+                    ps.setInt(1, userId);
+                    ps.executeUpdate();
+                }
+
+                c.commit();
+            } catch (SQLIntegrityConstraintViolationException e) {
+                c.rollback();
+                throw new RuntimeException(
+                        "Negalima ištrinti dėstytojo.\n" +
+                                "Pirma:\n" +
+                                " • ištrinkite ar pakeiskite pažymius, kuriuos šis dėstytojas yra suvedęs,\n" +
+                                " • atjunkite dėstytoją nuo grupės (jei priskirtas),\n" +
+                                " • įsitikinkite, kad nėra kitų ryšių su šiuo dėstytoju.\n\n" +
+                                "Tada bandykite trinti dar kartą.", e);
+            } catch (SQLException e) {
+                c.rollback();
+                throw new RuntimeException("Nepavyko ištrinti dėstytojo: " + e.getMessage(), e);
+            } finally {
+                c.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Nepavyko ištrinti dėstytojo: " + e.getMessage(), e);
+        }
+    }
 
 }

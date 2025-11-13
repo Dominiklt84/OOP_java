@@ -17,4 +17,51 @@ public class JDBC_subject_type_repository implements Subject_type_repository {
         }
         return list;
     }
+
+    public int add(String title) {
+        String getNextIdSql = "SELECT COALESCE(MAX(sub_type_id),0)+1 AS next_id FROM subject_type";
+        String insertSql    = "INSERT INTO subject_type (sub_type_id, title) VALUES (?, ?)";
+
+        try (Connection c = Data_base.getConnection()) {
+            int nextId = 1;
+            try (Statement st = c.createStatement();
+                 ResultSet rs = st.executeQuery(getNextIdSql)) {
+                if (rs.next()) nextId = rs.getInt("next_id");
+            }
+
+            try (PreparedStatement ps = c.prepareStatement(insertSql)) {
+                ps.setInt(1, nextId);
+                ps.setString(2, title);
+                ps.executeUpdate();
+            }
+
+            return nextId;
+        } catch (SQLException e) {
+            throw new RuntimeException("Nepavyko sukurti dalyko tipo: " + e.getMessage(), e);
+        }
+    }
+
+
+    public void rename(int id, String title) {
+        String sql = "UPDATE subject_type SET title=? WHERE sub_type_id=?";
+        try (Connection c = Data_base.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, title);
+            ps.setInt(2, id);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Nepavyko pervadinti dalyko tipo: " + e.getMessage(), e);
+        }
+    }
+
+    public void delete(int id) {
+        String sql = "DELETE FROM subject_type WHERE sub_type_id=?";
+        try (Connection c = Data_base.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Nepavyko ištrinti dalyko tipo: " + e.getMessage(), e);
+        }
+    }
 }
