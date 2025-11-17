@@ -109,21 +109,4 @@ public class JDBC_subject_repository implements Subject_repository {
         }
     }
 
-
-    public java.util.Map<Integer, String> subjectNameMap() {
-        String sql = """
-            SELECT s.subject_id, st.title AS type_title
-            FROM subject s
-            JOIN subject_type st ON st.sub_type_id = s.sub_type_id
-            """;
-        java.util.Map<Integer,String> map = new java.util.HashMap<>();
-        try (Connection c = Data_base.getConnection();
-             Statement st = c.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-            while (rs.next()) map.put(rs.getInt("subject_id"), rs.getString("type_title"));
-        } catch (SQLException e) {
-            throw new RuntimeException("Nepavyko suformuoti subjectNameMap", e);
-        }
-        return map;
-    }
 }
