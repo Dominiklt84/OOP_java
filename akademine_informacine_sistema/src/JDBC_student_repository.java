@@ -1,7 +1,6 @@
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.sql.SQLIntegrityConstraintViolationException;
 
 public class JDBC_student_repository implements Student_repository {
@@ -35,36 +34,6 @@ public class JDBC_student_repository implements Student_repository {
         return list;
     }
 
-    public Optional<Student> findById(int studentId) {
-        String sql = """
-            SELECT s.student_id,
-                   u.user_id, u.first_name, u.last_name, u.login, u.password
-            FROM student s
-            JOIN `user` u ON u.user_id = s.user_id
-            WHERE s.student_id = ?
-            """;
-        try (Connection c = Data_base.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1, studentId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return Optional.of(new Student(
-                            rs.getInt("user_id"),
-                            rs.getString("login"),
-                            rs.getString("password"),
-                            rs.getString("first_name"),
-                            rs.getString("last_name"),
-                            rs.getInt("student_id"),
-                            null
-                    ));
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Nepavyko rasti studento", e);
-        }
-        return Optional.empty();
-    }
-
     private int getStudentTypeId(Connection c) throws SQLException {
         try (PreparedStatement ps = c.prepareStatement(
                 "SELECT user_type_id FROM `user_type` WHERE UPPER(title)=UPPER('STUDENT') LIMIT 1")) {
@@ -81,7 +50,7 @@ public class JDBC_student_repository implements Student_repository {
 
         String getNextUserIdSql = "SELECT COALESCE(MAX(user_id),0)+1 AS next_id FROM `user`";
         String insertUser       = "INSERT INTO `user` (user_id, user_type_id, first_name, last_name, login, password) VALUES (?, ?, ?, ?, ?, ?)";
-        String insertStudent    = "INSERT INTO student (student_id, user_id) VALUES (?, ?)"; // jei student_id irgi ne AUTO_INCREMENT
+        String insertStudent    = "INSERT INTO student (student_id, user_id) VALUES (?, ?)";
 
         try (Connection c = Data_base.getConnection()) {
             c.setAutoCommit(false);
@@ -128,7 +97,6 @@ public class JDBC_student_repository implements Student_repository {
             throw new RuntimeException("Nepavyko pridėti studento: " + e.getMessage(), e);
         }
     }
-
 
     public void update(int studentId, String firstName, String lastName) {
         String getUserSql = "SELECT user_id FROM student WHERE student_id=?";

@@ -1,5 +1,4 @@
 public class Student extends User {
-
     private int student_id;
     private Integer group_id;
 
@@ -12,11 +11,6 @@ public class Student extends User {
     }
 
     public int getStudentId() { return student_id; }
-    public void setStudentId(int student_id) { this.student_id = student_id; }
-
-    public Integer getGroupId() { return group_id; }
-    public void setGroupId(Integer group_id) { this.group_id = group_id; }
-
     public String toString() {
         return getFirstName() + " " + getLastName();
     }

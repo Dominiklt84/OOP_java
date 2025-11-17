@@ -12,12 +12,7 @@ public class Subject {
     }
 
     public int getSubjectId() { return subject_id; }
-    public int getSubTypeId() { return subType_id; }
-    public void setSubTypeId(int subTypeId) { this.subType_id = subTypeId; }
     public int getCredits() { return credits; }
-    public void setCredits(int credits) { this.credits = credits; }
     public String getSubTypeTitle() { return subTypeTitle; }
-    public void setSubTypeTitle(String t) { this.subTypeTitle = t; }
-
     public String toString() { return subTypeTitle + " (" + credits + " kr.)"; }
 }

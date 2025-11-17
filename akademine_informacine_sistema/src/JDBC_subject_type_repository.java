@@ -41,19 +41,6 @@ public class JDBC_subject_type_repository implements Subject_type_repository {
         }
     }
 
-
-    public void rename(int id, String title) {
-        String sql = "UPDATE subject_type SET title=? WHERE sub_type_id=?";
-        try (Connection c = Data_base.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setString(1, title);
-            ps.setInt(2, id);
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("Nepavyko pervadinti dalyko tipo: " + e.getMessage(), e);
-        }
-    }
-
     public void delete(int id) {
         String sql = "DELETE FROM subject_type WHERE sub_type_id=?";
         try (Connection c = Data_base.getConnection();

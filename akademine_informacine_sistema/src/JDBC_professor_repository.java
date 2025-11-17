@@ -1,7 +1,6 @@
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.sql.SQLIntegrityConstraintViolationException;
 
 public class JDBC_professor_repository implements Professor_repository {
@@ -42,35 +41,6 @@ public class JDBC_professor_repository implements Professor_repository {
             throw new RuntimeException("Nepavyko nuskaityti dėstytojų", e);
         }
         return list;
-    }
-
-    public Optional<Professor> findByProfessorId(int professorId) {
-        String sql = """
-            SELECT p.professor_id,
-                   u.user_id, u.first_name, u.last_name, u.login, u.password
-            FROM professor p
-            JOIN `user` u ON u.user_id = p.user_id
-            WHERE p.professor_id=?
-            """;
-        try (Connection c = Data_base.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1, professorId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return Optional.of(new Professor(
-                            rs.getInt("user_id"),
-                            rs.getString("login"),
-                            rs.getString("password"),
-                            rs.getString("first_name"),
-                            rs.getString("last_name"),
-                            rs.getInt("professor_id")
-                    ));
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Nepavyko rasti dėstytojo", e);
-        }
-        return Optional.empty();
     }
 
     public int add(String firstName, String lastName) {

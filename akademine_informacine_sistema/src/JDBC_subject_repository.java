@@ -1,7 +1,6 @@
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.sql.SQLIntegrityConstraintViolationException;
 
 public class JDBC_subject_repository implements Subject_repository {
@@ -30,24 +29,6 @@ public class JDBC_subject_repository implements Subject_repository {
             while (rs.next()) list.add(map(rs));
         } catch (SQLException e) { throw new RuntimeException("Nepavyko gauti dalykų", e); }
         return list;
-    }
-
-    public Optional<Subject> findById(int id) {
-        String sql = """
-            SELECT s.subject_id, s.sub_type_id, s.credits,
-                   st.title AS type_title
-            FROM subject s
-            JOIN subject_type st ON st.sub_type_id = s.sub_type_id
-            WHERE s.subject_id=?
-            """;
-        try (Connection c = Data_base.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return Optional.of(map(rs));
-            }
-        } catch (SQLException e) { throw new RuntimeException("Nepavyko rasti dalyko", e); }
-        return Optional.empty();
     }
 
     public int add(int subTypeId, int credits) {

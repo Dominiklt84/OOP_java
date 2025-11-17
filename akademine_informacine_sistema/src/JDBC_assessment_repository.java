@@ -1,7 +1,6 @@
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class JDBC_assessment_repository implements Assessment_repository {
 
@@ -71,22 +70,6 @@ public class JDBC_assessment_repository implements Assessment_repository {
             throw new RuntimeException("Nepavyko gauti studento pažymių: " + e.getMessage(), e);
         }
         return list;
-    }
-
-    public Optional<Assessment> findById(int id) {
-        String sql = "SELECT assessment_id, student_id, subject_id, professor_id, " +
-                "sem_type_id, worth, comment, introduced " +
-                "FROM assessment WHERE assessment_id=?";
-        try (Connection c = Data_base.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return Optional.of(map(rs));
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Nepavyko rasti pažymio: " + e.getMessage(), e);
-        }
-        return Optional.empty();
     }
 
     public Assessment save(Assessment a) {

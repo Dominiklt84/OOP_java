@@ -1,7 +1,6 @@
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.sql.SQLIntegrityConstraintViolationException;
 
 public class JDBC_group_repository implements Group_repository {
@@ -19,21 +18,6 @@ public class JDBC_group_repository implements Group_repository {
             throw new RuntimeException("Nepavyko gauti grupių sąrašo", e);
         }
         return list;
-    }
-
-    public Optional<Group> findById(int id) {
-        String sql = "SELECT DISTINCT group_id, title FROM `group` WHERE group_id=?";
-        try (Connection c = Data_base.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return Optional.of(new Group(rs.getInt("group_id"), rs.getString("title")));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return Optional.empty();
     }
 
     public void add(Group group) {

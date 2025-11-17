@@ -52,6 +52,7 @@ public class Grade_editor extends JPanel {
         JButton add = new JButton("Pridėti");
         JButton edit = new JButton("Redaguoti");
         JButton del = new JButton("Šalinti");
+        JButton btnLoad = new JButton("Įkelti"); filters.add(btnLoad);
         actions.add(add); actions.add(edit); actions.add(del);
         add(actions, BorderLayout.SOUTH);
 
@@ -67,6 +68,7 @@ public class Grade_editor extends JPanel {
         hideColumn(7);
         hideColumn(8);
         hideColumn(9);
+        btnLoad.addActionListener(e -> loadData());
 
         loadData();
     }
