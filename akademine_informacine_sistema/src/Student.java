@@ -1,7 +1,7 @@
 public class Student extends User {
 
     private int student_id;
-    private Integer group_id; // jei dar nenaudoji, gali būti null
+    private Integer group_id;
 
     public Student(int user_id, String login, String password,
                    String firstName, String lastName,

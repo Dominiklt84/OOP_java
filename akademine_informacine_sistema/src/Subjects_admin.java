@@ -10,7 +10,7 @@ public class Subjects_admin extends JPanel {
     private final JDBC_subject_repository subjectRepo = new JDBC_subject_repository();
 
     private final DefaultTableModel model = new DefaultTableModel(
-            new String[]{"subject_id", "Tipas", "Kreditai"}, 0
+            new String[]{"ID", "Tipas", "Kreditai"}, 0
     );
     private final JTable table = new JTable(model);
 
@@ -44,7 +44,7 @@ public class Subjects_admin extends JPanel {
         for (Subject s : subjects) {
             model.addRow(new Object[]{
                     s.getSubjectId(),
-                    s.getSubTypeTitle(),   
+                    s.getSubTypeTitle(),
                     s.getCredits()
             });
         }
@@ -186,7 +186,6 @@ public class Subjects_admin extends JPanel {
 
         int subjectId = (int) model.getValueAt(row, 0);
 
-        // Gaunam esamą dalyką iš DB, kad žinotume cur sub_type_id
         String sql = "SELECT sub_type_id, credits FROM subject WHERE subject_id = ?";
 
         try (Connection c = Data_base.getConnection();

@@ -29,7 +29,7 @@ public class Grades_viewer extends JPanel {
     public static class SemType {
         public final int id; public final String title;
         public SemType(int id, String title){ this.id=id; this.title=title; }
-        @Override public String toString(){ return title; }
+        public String toString(){ return title; }
     }
 
     public Grades_viewer(int student_id) {
@@ -124,8 +124,6 @@ public class Grades_viewer extends JPanel {
             });
         }
     }
-
-    // ---------- Pagalbinės ----------
 
     private void hideColumn(int idx){
         table.getColumnModel().getColumn(idx).setMinWidth(0);

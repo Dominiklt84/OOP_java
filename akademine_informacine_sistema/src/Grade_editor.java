@@ -44,7 +44,6 @@ public class Grade_editor extends JPanel {
         filters.add(new JLabel("Grupė:"));   filters.add(cbGroup);
         filters.add(new JLabel("Dalykas:")); filters.add(cbSubject);
         filters.add(new JLabel("Semestras:")); filters.add(cbSemFilter);
-        JButton btnLoad = new JButton("Įkelti"); filters.add(btnLoad);
         add(filters, BorderLayout.NORTH);
 
         add(new JScrollPane(table), BorderLayout.CENTER);
@@ -61,14 +60,13 @@ public class Grade_editor extends JPanel {
         loadSemTypes();
         cbSemFilter.setModel(semTypesModel);
         cbGroup.addActionListener(e -> preloadStudentNames());
-        btnLoad.addActionListener(e -> loadData());
         add.addActionListener(e -> onAdd());
         edit.addActionListener(e -> onEdit());
         del.addActionListener(e -> onDelete());
 
-        hideColumn(7); // student_id
-        hideColumn(8); // subject_id
-        hideColumn(9); // sem_type_id
+        hideColumn(7);
+        hideColumn(8);
+        hideColumn(9);
 
         loadData();
     }
@@ -217,7 +215,7 @@ public class Grade_editor extends JPanel {
                 assessmentRepo.save(a);
                 loadData();
             } catch (Exception ex) {
-                msg("Klaida: " + ex.getMessage());
+                msg("Klaida: Įveskite pažymį." );
             }
         }
     }

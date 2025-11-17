@@ -19,5 +19,5 @@ public class Subject {
     public String getSubTypeTitle() { return subTypeTitle; }
     public void setSubTypeTitle(String t) { this.subTypeTitle = t; }
 
-    @Override public String toString() { return subTypeTitle + " (" + credits + " kr.)"; }
+    public String toString() { return subTypeTitle + " (" + credits + " kr.)"; }
 }

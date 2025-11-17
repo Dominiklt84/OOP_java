@@ -4,11 +4,11 @@ public class Assessment {
     private Integer assessment_id;
     private int student_id;
     private int subject_id;
-    private Integer professor_id;     // gali būti null
-    private double worth;            // vietoj grade
-    private Integer semType_id;       // vietoj string "semester"
+    private Integer professor_id;
+    private double worth;
+    private Integer semType_id;
     private String comment;
-    private LocalDateTime introduced; // TIMESTAMP
+    private LocalDateTime introduced;
 
     public Assessment(Integer assessment_id, int student_id, int subject_id,
                       Integer professor_id, double worth, Integer semType_id,
