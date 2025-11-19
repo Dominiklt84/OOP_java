@@ -8,9 +8,7 @@ public class Grade_service {
         this.repo = new JDBC_assessment_repository();
     }
 
-    public List<Assessment> listForStudent(int studentId,
-                                           Integer subjectId,
-                                           Integer semTypeId) {
+    public List<Assessment> listForStudent(int studentId, Integer subjectId, Integer semTypeId) {
         return repo.findByStudent(studentId, subjectId, semTypeId);
     }
 

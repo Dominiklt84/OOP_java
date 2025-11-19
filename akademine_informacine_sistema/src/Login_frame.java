@@ -60,11 +60,11 @@ public class Login_frame extends JFrame {
                 f.setVisible(true);
                 dispose();
             } else if (u instanceof Professor) {
-                JFrame f = new Professor_frame((Professor) u);
+                JFrame f = new Professor_frame(u);
                 f.setVisible(true);
                 dispose();
             } else if (u instanceof Student) {
-                JFrame f = new Student_frame((Student) u);
+                JFrame f = new Student_frame(u);
                 f.setVisible(true);
                 dispose();
             } else {
