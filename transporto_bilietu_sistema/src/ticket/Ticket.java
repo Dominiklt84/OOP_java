@@ -1,3 +1,7 @@
+package ticket;
+
+import transport.Transport;
+
 public class Ticket {
     private final Transport transport;
     private final double price_ticket;
@@ -6,10 +10,9 @@ public class Ticket {
         this.transport = transport;
         this.price_ticket = transport.price();
     }
-    public void print_ticket(){
-        transport.print_info();
-        System.out.println("Ticket price: " + price_ticket + " EUR");
-    }
+    public Transport getTransport(){
+        return transport;
+   }
     public double getPrice_ticket(){
         return price_ticket;
     }

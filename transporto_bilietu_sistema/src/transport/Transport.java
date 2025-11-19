@@ -1,3 +1,4 @@
+package transport;
 
 public abstract class Transport implements Transport_methods {
     protected String start_city;
