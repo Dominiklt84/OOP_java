@@ -1,20 +1,20 @@
 package users;
 
 public class User {
-    private final String firstname;
-    private final String lastname;
+    private final String login;
+    private final String password;
     private final Role role;
 
-    public User(String firstname, String lastname, Role role) {
-        this.firstname = firstname;
-        this.lastname = lastname;
+    public User(String login, String password, Role role) {
+        this.login = login;
+        this.password = password;
         this.role = role;
     }
-    public String getFirstname() {
-        return firstname;
+    public String getLogin() {
+        return login;
     }
-    public String getLastname() {
-        return lastname;
+    public String getPassword() {
+        return password;
     }
     public Role getRole() {
         return role;

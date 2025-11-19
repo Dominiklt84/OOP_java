@@ -11,11 +11,5 @@ public abstract class Transport implements Transport_methods {
         this.distance = distance;
     }
 
-    public void print_info(){
-        System.out.println("Start City: " + start_city);
-        System.out.println("End City: " + final_city);
-        System.out.println("Distance: " + distance + "km.");
-    }
-
     public abstract double price();
 }
