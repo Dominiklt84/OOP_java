@@ -3,7 +3,7 @@ import users.Auth_service;
 import users.Role;
 import users.User;
 import system.Ticket_system;
-import system.System_Impl;
+import system.System_ticket;
 
 import javax.swing.*;
 import java.awt.*;
@@ -15,7 +15,7 @@ public class Main_frame extends JFrame {
 
     public Main_frame() {
         this.auth_service = new Auth_service();
-        this.system = new System_Impl();
+        this.system = new System_ticket();
 
         setTitle("Transporto bilietu sistema");
         setDefaultCloseOperation(EXIT_ON_CLOSE);

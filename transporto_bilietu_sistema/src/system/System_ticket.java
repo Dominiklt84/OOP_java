@@ -4,7 +4,7 @@ import transport.Transport;
 import java.util.ArrayList;
 import java.util.List;
 
-public class System_Impl implements Ticket_system {
+public class System_ticket implements Ticket_system {
     private final List<Ticket> tickets=new ArrayList<>();
 
     public Ticket buyTicket(Transport transport) {
