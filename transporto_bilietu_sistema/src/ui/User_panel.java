@@ -19,6 +19,7 @@ public class User_panel extends JPanel {
         setLayout(new BorderLayout());
 
         JPanel top = new JPanel(new GridLayout(5, 2));
+        JTextField idField = new JTextField();
         JTextField startField = new JTextField();
         JTextField finalField = new JTextField();
         JTextField distField = new JTextField();
@@ -37,15 +38,16 @@ public class User_panel extends JPanel {
 
         buy.addActionListener(e -> {
             try {
+                int id = Integer.parseInt(idField.getText());
                 String startCity = startField.getText();
                 String finalCity = finalField.getText();
                 double distance = Double.parseDouble(distField.getText());
                 String t = (String) type.getSelectedItem();
 
                 Transport transport = switch (t) {
-                    case "Autobusas" -> new Bus(startCity, finalCity, distance);
-                    case "Traukinys" -> new Train(startCity, finalCity, distance);
-                    case "Lektuvas" -> new Plane(startCity, finalCity, distance);
+                    case "Autobusas" -> new Bus(id,startCity, finalCity, distance);
+                    case "Traukinys" -> new Train(id,startCity, finalCity, distance);
+                    case "Lektuvas" -> new Plane(id,startCity, finalCity, distance);
                     default -> null;
                 };
 
