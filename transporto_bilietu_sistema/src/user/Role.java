@@ -1,6 +1,6 @@
-package users;
+package user;
 
 public enum Role {
-    USER,
+    CLIENT,
     ADMIN
 }

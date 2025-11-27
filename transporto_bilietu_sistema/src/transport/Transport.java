@@ -1,17 +1,17 @@
 package transport;
 
-public abstract class Transport implements Transport_methods {
-    protected int id;
-    protected String start_city;
-    protected String final_city;
-    protected double distance;
+public abstract class Transport {
+    private final Transport_type type;
 
-    public Transport(int id, String start_city, String final_city, double distance) {
-        this.id = id;
-        this.start_city = start_city;
-        this.final_city = final_city;
-        this.distance = distance;
+    protected Transport(Transport_type type) {
+        this.type = type;
     }
 
-    public abstract double price();
+    public Transport_type getType() {
+        return type;
+    }
+
+    public String toString() {
+        return type.name();
+    }
 }
