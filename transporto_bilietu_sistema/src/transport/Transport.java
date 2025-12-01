@@ -14,9 +14,6 @@ public abstract class Transport {
     public double getPricePerKm() {
         return pricePerKm;
     }
-    public void setPricePerKm(double pricePerKm) {
-        this.pricePerKm = pricePerKm;
-    }
     public abstract Transport_type getType();
 
     public String toString() {

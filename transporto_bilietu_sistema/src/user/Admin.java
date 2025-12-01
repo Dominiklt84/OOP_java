@@ -1,7 +1,7 @@
 package user;
 
-public class Admin {
-    public Admin(String user_id, String username, String password, String email, Role role) {
-        /*super(user_id, username, password, email, role);*/
+public class Admin extends User {
+    public Admin(String user_id, String username, String password,  Role role) {
+        super(user_id, username, password,  role);
     }
 }

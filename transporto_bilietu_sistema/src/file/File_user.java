@@ -1,6 +1,5 @@
 package file;
-import user.Role;
-import user.User;
+import user.*;
 import repository.User_repository;
 import java.io.*;
 import java.nio.file.Files;
@@ -51,7 +50,15 @@ public class File_user implements User_repository {
                 String username = parts[1];
                 String password = parts[2];
                 Role role = Role.valueOf(parts[3]);
-                users.add(new User(user_id, username, password, role));
+
+                User u;
+                if (role == Role.ADMIN) {
+                    u = new Admin(user_id, username, password, role);
+                } else {
+                    u = new Client(user_id, username, password, role);
+                }
+
+                users.add(u);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

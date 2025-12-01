@@ -1,6 +1,5 @@
 package service;
-import user.Role;
-import user.User;
+import user.*;
 import repository.User_repository;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,7 +14,14 @@ public class Auth_service {
 
     public Optional<User> login(String username, String password) {
         return user_repository.findByUsername(username)
-                .filter(u -> u.getPassword().equals(password));
+                .filter(u -> u.getPassword().equals(password))
+                .map(u -> {
+                    if (u.getRole() == Role.ADMIN) {
+                        return new Admin(u.getUserID(), u.getUsername(), u.getPassword(), u.getRole());
+                    } else {
+                        return new Client(u.getUserID(), u.getUsername(), u.getPassword(), u.getRole());
+                    }
+                });
     }
 
     public User registerClient(String username, String password) {
@@ -23,7 +29,8 @@ public class Auth_service {
             throw new IllegalArgumentException("Username already exists");
         }
         String user_id = UUID.randomUUID().toString();
-        User user = new User(user_id, username, password, Role.CLIENT);
+        User user = new Client(user_id, username, password, Role.CLIENT);
+
         user_repository.save(user);
         return user;
     }
@@ -31,10 +38,12 @@ public class Auth_service {
     public User createAdminIfNotExists(String username, String password) {
         Optional<User> existing = user_repository.findByUsername(username);
         if (existing.isPresent()) {
-            return existing.get();
+            User u = existing.get();
+            return new Admin(u.getUserID(), u.getUsername(), u.getPassword(), u.getRole());
         }
         String admin_id = UUID.randomUUID().toString();
-        User admin = new User(admin_id, username, password, Role.ADMIN);
+        User admin = new Admin(admin_id, username, password, Role.ADMIN);
+
         user_repository.save(admin);
         return admin;
     }
