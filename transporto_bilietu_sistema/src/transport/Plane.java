@@ -1,7 +1,10 @@
 package transport;
 
 public class Plane extends Transport {
-    public Plane() {
-        super(Transport_type.PLANE);
+    public Plane(double pricePerKm) {
+        super("Plane", pricePerKm);
+    }
+    public Transport_type getType() {
+        return Transport_type.PLANE;
     }
 }

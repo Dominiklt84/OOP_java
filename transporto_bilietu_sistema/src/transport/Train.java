@@ -1,7 +1,10 @@
 package transport;
 
 public class Train extends Transport {
-    public Train() {
-        super(Transport_type.TRAIN);
+    public Train(double pricePerKm) {
+        super("Train", pricePerKm);
+    }
+    public Transport_type getType() {
+        return Transport_type.TRAIN;
     }
 }

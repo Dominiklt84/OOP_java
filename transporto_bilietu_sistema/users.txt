@@ -1,0 +1,2 @@
+3cc6b181-9228-4378-a92c-044a6a70fabb;admin;admin;ADMIN
+712bfaa5-ba6b-4aeb-bdd6-3b902fe8a137;student;student;CLIENT

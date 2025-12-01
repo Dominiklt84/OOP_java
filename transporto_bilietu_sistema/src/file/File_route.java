@@ -1,13 +1,11 @@
 package file;
 import route.Route;
-import transport.Transport_type;
+import transport.*;
 import repository.Route_repository;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 public class File_route implements Route_repository {
     private final Path path;
@@ -21,6 +19,7 @@ public class File_route implements Route_repository {
         routes.add(route);
         writeAll(routes);
     }
+
     public void update(Route route) {
         List<Route> routes = readAll();
         for (int i = 0; i < routes.size(); i++) {
@@ -32,16 +31,14 @@ public class File_route implements Route_repository {
         writeAll(routes);
     }
 
-    public void deleteByID(String route_id) {
+    public void deleteByID(String id) {
         List<Route> routes = readAll();
-        routes.removeIf(r -> r.getRoute_id().equals(route_id));
+        routes.removeIf(r -> r.getRoute_id().equals(id));
         writeAll(routes);
     }
 
-    public Optional<Route> findByID(String route_id) {
-        return readAll().stream()
-                .filter(r -> r.getRoute_id().equals(route_id))
-                .findFirst();
+    public Optional<Route> findByID(String id) {
+        return readAll().stream().filter(r -> r.getRoute_id().equals(id)).findFirst();
     }
 
     public List<Route> findAll() {
@@ -49,32 +46,48 @@ public class File_route implements Route_repository {
     }
 
     private List<Route> readAll() {
-        List<Route> routes = new ArrayList<>();
-        if (!Files.exists(path)) return routes;
+        List<Route> result = new ArrayList<>();
+        if (!Files.exists(path)) return result;
 
         try (BufferedReader br = Files.newBufferedReader(path)) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] parts = line.split(";");
-                if (parts.length != 5) continue;
-                String route_id = parts[0];
-                String from = parts[1];
-                String to = parts[2];
-                double distance = Double.parseDouble(parts[3]);
-                Transport_type type = Transport_type.valueOf(parts[4]);
-                routes.add(new Route(route_id, from, to, distance, type));
+                String[] p = line.split(";");
+                if (p.length != 6) continue;
+
+                String id = p[0];
+                String from = p[1];
+                String to = p[2];
+                double distance = Double.parseDouble(p[3]);
+                Transport_type type = Transport_type.valueOf(p[4]);
+                double pricePerKm = Double.parseDouble(p[5]);
+
+                Transport transport = switch (type) {
+                    case BUS -> new Bus(pricePerKm);
+                    case TRAIN -> new Train(pricePerKm);
+                    case PLANE -> new Plane(pricePerKm);
+                };
+
+                result.add(new Route(id, from, to, distance, transport));
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return routes;
+
+        return result;
     }
 
     private void writeAll(List<Route> routes) {
         try (BufferedWriter bw = Files.newBufferedWriter(path)) {
             for (Route r : routes) {
-                bw.write(r.getRoute_id() + ";" + r.getFrom() + ";" + r.getTo() + ";" +
-                        r.getDistance() + ";" + r.getTransport_type().name());
+                bw.write(String.join(";",
+                        r.getRoute_id(),
+                        r.getFrom(),
+                        r.getTo(),
+                        String.valueOf(r.getDistance()),
+                        r.getTransport().getType().name(),
+                        String.valueOf(r.getTransport().getPricePerKm())
+                ));
                 bw.newLine();
             }
         } catch (IOException e) {

@@ -1,17 +1,25 @@
 package transport;
 
 public abstract class Transport {
-    private final Transport_type type;
+    private final String name;
+    private double pricePerKm;
 
-    protected Transport(Transport_type type) {
-        this.type = type;
+    protected Transport(String name,double pricePerKm) {
+        this.name = name;
+        this.pricePerKm = pricePerKm;
     }
-
-    public Transport_type getType() {
-        return type;
+    public String getName() {
+        return name;
     }
+    public double getPricePerKm() {
+        return pricePerKm;
+    }
+    public void setPricePerKm(double pricePerKm) {
+        this.pricePerKm = pricePerKm;
+    }
+    public abstract Transport_type getType();
 
     public String toString() {
-        return type.name();
+        return name + " (" + pricePerKm + " €/km)";
     }
 }
