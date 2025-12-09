@@ -32,10 +32,6 @@ public class Route_service {
         return route_repository.findAll();
     }
 
-    public Optional<Route> findByID(String id) {
-        return route_repository.findByID(id);
-    }
-
     public static Transport createTransportByType(Transport_type type, double pricePerKm) {
         return switch (type) {
             case BUS -> new Bus(pricePerKm);

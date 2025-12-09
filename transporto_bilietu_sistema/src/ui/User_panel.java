@@ -67,8 +67,7 @@ public class User_panel extends JPanel {
         buttons.add(returnBtn);
         buttons.add(refreshBtn);
 
-        add(new JLabel("Logged in as: " + user.getUsername(), SwingConstants.CENTER),
-                BorderLayout.NORTH);
+        add(new JLabel("Logged in as: " + user.getUsername(), SwingConstants.CENTER), BorderLayout.NORTH);
         add(center, BorderLayout.CENTER);
         add(buttons, BorderLayout.SOUTH);
     }

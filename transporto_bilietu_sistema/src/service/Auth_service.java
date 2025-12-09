@@ -13,9 +13,7 @@ public class Auth_service {
     }
 
     public Optional<User> login(String username, String password) {
-        return user_repository.findByUsername(username)
-                .filter(u -> u.getPassword().equals(password))
-                .map(u -> {
+        return user_repository.findByUsername(username).filter(u -> u.getPassword().equals(password)).map(u -> {
                     if (u.getRole() == Role.ADMIN) {
                         return new Admin(u.getUserID(), u.getUsername(), u.getPassword(), u.getRole());
                     } else {

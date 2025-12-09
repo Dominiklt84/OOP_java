@@ -35,13 +35,7 @@ public class File_ticket implements Ticket_repository {
     }
 
     public Optional<Ticket> findByID(String ticket_id) {
-        return readAll().stream()
-                .filter(t -> t.getTicket_id().equals(ticket_id))
-                .findFirst();
-    }
-
-    public List<Ticket> findAll() {
-        return readAll();
+        return readAll().stream().filter(t -> t.getTicket_id().equals(ticket_id)).findFirst();
     }
 
     public List<Ticket> findByUserID(String user_id) {
@@ -75,8 +69,7 @@ public class File_ticket implements Ticket_repository {
     private void writeAll(List<Ticket> tickets) {
         try (BufferedWriter bw = Files.newBufferedWriter(path)) {
             for (Ticket t : tickets) {
-                bw.write(t.getTicket_id() + ";" + t.getUser_id() + ";" + t.getRoute_id() + ";" +
-                        t.getPrice() + ";" + t.getStatus().name());
+                bw.write(t.getTicket_id() + ";" + t.getUser_id() + ";" + t.getRoute_id() + ";" + t.getPrice() + ";" + t.getStatus().name());
                 bw.newLine();
             }
         } catch (IOException e) {

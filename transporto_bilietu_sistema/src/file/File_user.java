@@ -16,15 +16,7 @@ public class File_user implements User_repository {
     }
 
     public Optional<User> findByUsername(String username) {
-        return readAll().stream()
-                .filter(u -> u.getUsername().equals(username))
-                .findFirst();
-    }
-
-    public Optional<User> findByID(String user_id) {
-        return readAll().stream()
-                .filter(u -> u.getUserID().equals(user_id))
-                .findFirst();
+        return readAll().stream().filter(u -> u.getUsername().equals(username)).findFirst();
     }
 
     public List<User> findAll() {

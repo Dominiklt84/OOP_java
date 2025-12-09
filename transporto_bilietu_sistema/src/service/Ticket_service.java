@@ -16,8 +16,7 @@ public class Ticket_service {
     }
 
     public Ticket buyTicket(String userId, String routeId) {
-        Route route = route_repository.findByID(routeId)
-                .orElseThrow(() -> new IllegalArgumentException("Route not found"));
+        Route route = route_repository.findByID(routeId).orElseThrow(() -> new IllegalArgumentException("Route not found"));
 
         double price = route.getTransport().getPricePerKm() * route.getDistance();
         Ticket t = new Ticket(UUID.randomUUID().toString(), userId, routeId, price, Ticket_status.ACTIVE);
@@ -26,8 +25,7 @@ public class Ticket_service {
     }
 
     public void returnTicket(String ticketId, String userId) {
-        Ticket ticket = ticket_repository.findByID(ticketId)
-                .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
+        Ticket ticket = ticket_repository.findByID(ticketId).orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
         if (!ticket.getUser_id().equals(userId)) {
             throw new IllegalStateException("Cannot return other user's ticket");
         }
